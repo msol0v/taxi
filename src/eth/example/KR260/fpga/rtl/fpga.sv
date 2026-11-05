@@ -23,8 +23,6 @@ module fpga #
     parameter string VENDOR = "XILINX",
     // device family
     parameter string FAMILY = "zynquplus",
-    // Use 90 degree clock for RGMII transmit
-    parameter logic USE_CLK90 = 1'b1,
     // MAC configuration
     parameter logic CFG_LOW_LATENCY = 1'b1,
     parameter logic COMBINED_MAC_PCS = 1'b1,
@@ -64,9 +62,7 @@ module fpga #
 
 // Internal 125 MHz clock
 wire clk_125mhz_mmcm_out;
-wire clk90_125mhz_mmcm_out;
 wire clk_125mhz_int;
-wire clk90_125mhz_int;
 wire rst_125mhz_int;
 
 // Internal 62.5 MHz clock
@@ -137,9 +133,6 @@ clk_mmcm_inst (
     // 125 MHz, 0 degrees
     .CLKOUT0(clk_125mhz_mmcm_out),
     .CLKOUT0B(),
-    // 125 MHz, 90 degrees
-    .CLKOUT1(clk90_125mhz_mmcm_out),
-    .CLKOUT1B(),
     // 62.5 MHz, 0 degrees
     .CLKOUT2(clk_62mhz_mmcm_out),
     .CLKOUT2B(),
@@ -164,12 +157,6 @@ BUFG
 clk_125mhz_bufg_inst (
     .I(clk_125mhz_mmcm_out),
     .O(clk_125mhz_int)
-);
-
-BUFG
-clk90_125mhz_bufg_inst (
-    .I(clk90_125mhz_mmcm_out),
-    .O(clk90_125mhz_int)
 );
 
 BUFG
@@ -243,7 +230,6 @@ fpga_core #(
     .SIM(SIM),
     .VENDOR(VENDOR),
     .FAMILY(FAMILY),
-    .USE_CLK90(USE_CLK90),
     .CFG_LOW_LATENCY(CFG_LOW_LATENCY),
     .COMBINED_MAC_PCS(COMBINED_MAC_PCS),
     .MAC_DATA_W(MAC_DATA_W)
@@ -254,7 +240,6 @@ core_inst (
      * Synchronous reset
      */
     .clk(clk_125mhz_int),
-    .clk90(clk90_125mhz_int),
     .rst(rst_125mhz_int),
 
     /*
