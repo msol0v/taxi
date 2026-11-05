@@ -23,8 +23,6 @@ module fpga_core #
     parameter string VENDOR = "XILINX",
     // device family
     parameter string FAMILY = "zynquplus",
-    // Use 90 degree clock for RGMII transmit
-    parameter logic USE_CLK90 = 1'b1,
     // MAC configuration
     parameter logic CFG_LOW_LATENCY = 1'b1,
     parameter logic COMBINED_MAC_PCS = 1'b1,
@@ -36,7 +34,6 @@ module fpga_core #
      * Synchronous reset
      */
     input  wire logic        clk,
-    input  wire logic        clk90,
     input  wire logic        rst,
 
     /*
@@ -44,25 +41,6 @@ module fpga_core #
      */
     output wire logic [1:0]  led,
     output wire logic [1:0]  sfp_led,
-
-    /*
-     * Ethernet: 1000BASE-T
-     */
-    input  wire logic        phy2_rgmii_rx_clk,
-    input  wire logic [3:0]  phy2_rgmii_rxd,
-    input  wire logic        phy2_rgmii_rx_ctl,
-    output wire logic        phy2_rgmii_tx_clk,
-    output wire logic [3:0]  phy2_rgmii_txd,
-    output wire logic        phy2_rgmii_tx_ctl,
-    output wire logic        phy2_reset_n,
-
-    input  wire logic        phy3_rgmii_rx_clk,
-    input  wire logic [3:0]  phy3_rgmii_rxd,
-    input  wire logic        phy3_rgmii_rx_ctl,
-    output wire logic        phy3_rgmii_tx_clk,
-    output wire logic [3:0]  phy3_rgmii_txd,
-    output wire logic        phy3_rgmii_tx_ctl,
-    output wire logic        phy3_reset_n,
 
     /*
      * Ethernet: SFP+
@@ -85,162 +63,6 @@ module fpga_core #
     input  wire logic        sfp_i2c_sda_i,
     output wire logic        sfp_i2c_sda_o,
     output wire logic        sfp_i2c_sda_t
-);
-
-// BASE-T PHY
-assign phy2_reset_n = !rst;
-assign phy3_reset_n = !rst;
-
-taxi_axis_if #(.DATA_W(8), .ID_W(8), .USER_EN(1), .USER_W(1)) axis_phy2_eth();
-taxi_axis_if #(.DATA_W(96), .KEEP_W(1), .ID_W(8)) axis_phy2_tx_cpl();
-taxi_axis_if #(.DATA_W(16), .KEEP_W(1), .KEEP_EN(0), .LAST_EN(0), .USER_EN(1), .USER_W(1), .ID_EN(1), .ID_W(8)) axis_phy2_stat();
-
-taxi_axis_if #(.DATA_W(8), .ID_W(8), .USER_EN(1), .USER_W(1)) axis_phy3_eth();
-taxi_axis_if #(.DATA_W(96), .KEEP_W(1), .ID_W(8)) axis_phy3_tx_cpl();
-taxi_axis_if #(.DATA_W(16), .KEEP_W(1), .KEEP_EN(0), .LAST_EN(0), .USER_EN(1), .USER_W(1), .ID_EN(1), .ID_W(8)) axis_phy3_stat();
-
-taxi_eth_mac_1g_rgmii_fifo #(
-    .SIM(SIM),
-    .VENDOR(VENDOR),
-    .FAMILY(FAMILY),
-    .USE_CLK90(USE_CLK90),
-    .STAT_EN(1'b0),
-    .TX_FIFO_DEPTH(16384),
-    .TX_FRAME_FIFO(1),
-    .RX_FIFO_DEPTH(16384),
-    .RX_FRAME_FIFO(1)
-)
-phy2_eth_mac_inst (
-    .gtx_clk(clk),
-    .gtx_clk90(clk90),
-    .gtx_rst(rst),
-    .logic_clk(clk),
-    .logic_rst(rst),
-
-    /*
-     * Transmit interface (AXI stream)
-     */
-    .s_axis_tx(axis_phy2_eth),
-    .m_axis_tx_cpl(axis_phy2_tx_cpl),
-
-    /*
-     * Receive interface (AXI stream)
-     */
-    .m_axis_rx(axis_phy2_eth),
-
-    /*
-     * RGMII interface
-     */
-    .rgmii_rx_clk(phy2_rgmii_rx_clk),
-    .rgmii_rxd(phy2_rgmii_rxd),
-    .rgmii_rx_ctl(phy2_rgmii_rx_ctl),
-    .rgmii_tx_clk(phy2_rgmii_tx_clk),
-    .rgmii_txd(phy2_rgmii_txd),
-    .rgmii_tx_ctl(phy2_rgmii_tx_ctl),
-
-    /*
-     * Statistics
-     */
-    .stat_clk(clk),
-    .stat_rst(rst),
-    .m_axis_stat(axis_phy2_stat),
-
-    /*
-     * Status
-     */
-    .tx_error_underflow(),
-    .tx_fifo_overflow(),
-    .tx_fifo_bad_frame(),
-    .tx_fifo_good_frame(),
-    .rx_error_bad_frame(),
-    .rx_error_bad_fcs(),
-    .rx_fifo_overflow(),
-    .rx_fifo_bad_frame(),
-    .rx_fifo_good_frame(),
-    .link_speed(),
-
-    /*
-     * Configuration
-     */
-    .cfg_tx_pad_en(1'b1),
-    .cfg_tx_min_pkt_len(8'd60-1),
-    .cfg_tx_max_pkt_len(16'd9218-1),
-    .cfg_tx_ifg(8'd12),
-    .cfg_tx_enable(1'b1),
-    .cfg_rx_max_pkt_len(16'd9218-1),
-    .cfg_rx_enable(1'b1)
-);
-
-taxi_eth_mac_1g_rgmii_fifo #(
-    .SIM(SIM),
-    .VENDOR(VENDOR),
-    .FAMILY(FAMILY),
-    .USE_CLK90(USE_CLK90),
-    .STAT_EN(1'b0),
-    .TX_FIFO_DEPTH(16384),
-    .TX_FRAME_FIFO(1),
-    .RX_FIFO_DEPTH(16384),
-    .RX_FRAME_FIFO(1)
-)
-phy3_eth_mac_inst (
-    .gtx_clk(clk),
-    .gtx_clk90(clk90),
-    .gtx_rst(rst),
-    .logic_clk(clk),
-    .logic_rst(rst),
-
-    /*
-     * Transmit interface (AXI stream)
-     */
-    .s_axis_tx(axis_phy3_eth),
-    .m_axis_tx_cpl(axis_phy3_tx_cpl),
-
-    /*
-     * Receive interface (AXI stream)
-     */
-    .m_axis_rx(axis_phy3_eth),
-
-    /*
-     * RGMII interface
-     */
-    .rgmii_rx_clk(phy3_rgmii_rx_clk),
-    .rgmii_rxd(phy3_rgmii_rxd),
-    .rgmii_rx_ctl(phy3_rgmii_rx_ctl),
-    .rgmii_tx_clk(phy3_rgmii_tx_clk),
-    .rgmii_txd(phy3_rgmii_txd),
-    .rgmii_tx_ctl(phy3_rgmii_tx_ctl),
-
-    /*
-     * Statistics
-     */
-    .stat_clk(clk),
-    .stat_rst(rst),
-    .m_axis_stat(axis_phy3_stat),
-
-    /*
-     * Status
-     */
-    .tx_error_underflow(),
-    .tx_fifo_overflow(),
-    .tx_fifo_bad_frame(),
-    .tx_fifo_good_frame(),
-    .rx_error_bad_frame(),
-    .rx_error_bad_fcs(),
-    .rx_fifo_overflow(),
-    .rx_fifo_bad_frame(),
-    .rx_fifo_good_frame(),
-    .link_speed(),
-
-    /*
-     * Configuration
-     */
-    .cfg_tx_pad_en(1'b1),
-    .cfg_tx_min_pkt_len(8'd60-1),
-    .cfg_tx_max_pkt_len(16'd9218-1),
-    .cfg_tx_ifg(8'd12),
-    .cfg_tx_enable(1'b1),
-    .cfg_rx_max_pkt_len(16'd9218-1),
-    .cfg_rx_enable(1'b1)
 );
 
 // SFP+

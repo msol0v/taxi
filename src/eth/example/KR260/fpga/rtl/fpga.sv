@@ -43,25 +43,6 @@ module fpga #
     output wire logic [1:0]  sfp_led,
 
     /*
-     * Ethernet: 1000BASE-T RGMII
-     */
-    input  wire logic        phy2_rx_clk,
-    input  wire logic [3:0]  phy2_rxd,
-    input  wire logic        phy2_rx_ctl,
-    output wire logic        phy2_tx_clk,
-    output wire logic [3:0]  phy2_txd,
-    output wire logic        phy2_tx_ctl,
-    output wire logic        phy2_reset_n,
-
-    input  wire logic        phy3_rx_clk,
-    input  wire logic [3:0]  phy3_rxd,
-    input  wire logic        phy3_rx_ctl,
-    output wire logic        phy3_tx_clk,
-    output wire logic [3:0]  phy3_txd,
-    output wire logic        phy3_tx_ctl,
-    output wire logic        phy3_reset_n,
-
-    /*
      * Ethernet: SFP+
      */
     input  wire logic        sfp_rx_p,
@@ -258,138 +239,6 @@ sync_signal_inst (
 assign sfp_i2c_scl = sfp_i2c_scl_t_reg ? 1'bz : sfp_i2c_scl_o_reg;
 assign sfp_i2c_sda = sfp_i2c_sda_t_reg ? 1'bz : sfp_i2c_sda_o_reg;
 
-// IODELAY elements for RGMII interface to PHY
-wire [3:0] phy2_rxd_int;
-wire phy2_rx_ctl_int;
-
-wire [3:0] phy3_rxd_int;
-wire phy3_rx_ctl_int;
-
-IDELAYCTRL #(
-    .SIM_DEVICE("ULTRASCALE")
-)
-idelayctrl_inst (
-    .REFCLK(clk_312mhz_int),
-    .RST(rst_312mhz_int),
-    .RDY()
-);
-
-for (genvar n = 0; n < 4; n = n + 1) begin : phy2_rxd_idelay_bit
-    
-    IDELAYE3 #(
-        .DELAY_SRC("IDATAIN"),
-        .CASCADE("NONE"),
-        .DELAY_TYPE("FIXED"),
-        .DELAY_VALUE(0),
-        .REFCLK_FREQUENCY(312.5),
-        .DELAY_FORMAT("TIME"),
-        .UPDATE_MODE("SYNC"),
-        .SIM_DEVICE("ULTRASCALE_PLUS")
-    )
-    idelay_inst (
-        .CASC_IN(1'b0),
-        .CASC_RETURN(1'b0),
-        .CASC_OUT(),
-        .IDATAIN(phy2_rxd[n]),
-        .DATAIN(1'b0),
-        .DATAOUT(phy2_rxd_int[n]),
-        .CLK(1'b0),
-        .EN_VTC(1'b1),
-        .CE(1'b0),
-        .INC(1'b0),
-        .LOAD(1'b0),
-        .RST(1'b0),
-        .CNTVALUEIN(9'd0),
-        .CNTVALUEOUT()
-    );
-
-end
-
-IDELAYE3 #(
-    .DELAY_SRC("IDATAIN"),
-    .CASCADE("NONE"),
-    .DELAY_TYPE("FIXED"),
-    .DELAY_VALUE(0),
-    .REFCLK_FREQUENCY(312.5),
-    .DELAY_FORMAT("TIME"),
-    .UPDATE_MODE("SYNC"),
-    .SIM_DEVICE("ULTRASCALE_PLUS")
-)
-phy2_rx_ctl_idelay (
-    .CASC_IN(1'b0),
-    .CASC_RETURN(1'b0),
-    .CASC_OUT(),
-    .IDATAIN(phy2_rx_ctl),
-    .DATAIN(1'b0),
-    .DATAOUT(phy2_rx_ctl_int),
-    .CLK(1'b0),
-    .EN_VTC(1'b1),
-    .CE(1'b0),
-    .INC(1'b0),
-    .LOAD(1'b0),
-    .RST(1'b0),
-    .CNTVALUEIN(9'd0),
-    .CNTVALUEOUT()
-);
-
-for (genvar n = 0; n < 4; n = n + 1) begin : phy3_rxd_idelay_bit
-    
-    IDELAYE3 #(
-        .DELAY_SRC("IDATAIN"),
-        .CASCADE("NONE"),
-        .DELAY_TYPE("FIXED"),
-        .DELAY_VALUE(0),
-        .REFCLK_FREQUENCY(312.5),
-        .DELAY_FORMAT("TIME"),
-        .UPDATE_MODE("SYNC"),
-        .SIM_DEVICE("ULTRASCALE_PLUS")
-    )
-    idelay_inst (
-        .CASC_IN(1'b0),
-        .CASC_RETURN(1'b0),
-        .CASC_OUT(),
-        .IDATAIN(phy3_rxd[n]),
-        .DATAIN(1'b0),
-        .DATAOUT(phy3_rxd_int[n]),
-        .CLK(1'b0),
-        .EN_VTC(1'b1),
-        .CE(1'b0),
-        .INC(1'b0),
-        .LOAD(1'b0),
-        .RST(1'b0),
-        .CNTVALUEIN(9'd0),
-        .CNTVALUEOUT()
-    );
-
-end
-
-IDELAYE3 #(
-    .DELAY_SRC("IDATAIN"),
-    .CASCADE("NONE"),
-    .DELAY_TYPE("FIXED"),
-    .DELAY_VALUE(0),
-    .REFCLK_FREQUENCY(312.5),
-    .DELAY_FORMAT("TIME"),
-    .UPDATE_MODE("SYNC"),
-    .SIM_DEVICE("ULTRASCALE_PLUS")
-)
-phy3_rx_ctl_idelay (
-    .CASC_IN(1'b0),
-    .CASC_RETURN(1'b0),
-    .CASC_OUT(),
-    .IDATAIN(phy3_rx_ctl),
-    .DATAIN(1'b0),
-    .DATAOUT(phy3_rx_ctl_int),
-    .CLK(1'b0),
-    .EN_VTC(1'b1),
-    .CE(1'b0),
-    .INC(1'b0),
-    .LOAD(1'b0),
-    .RST(1'b0),
-    .CNTVALUEIN(9'd0),
-    .CNTVALUEOUT()
-);
-
 fpga_core #(
     .SIM(SIM),
     .VENDOR(VENDOR),
@@ -413,25 +262,6 @@ core_inst (
      */
     .led(led),
     .sfp_led(sfp_led),
-
-    /*
-     * Ethernet: 1000BASE-T RGMII
-     */
-    .phy2_rgmii_rx_clk(phy2_rx_clk),
-    .phy2_rgmii_rxd(phy2_rxd_int),
-    .phy2_rgmii_rx_ctl(phy2_rx_ctl_int),
-    .phy2_rgmii_tx_clk(phy2_tx_clk),
-    .phy2_rgmii_txd(phy2_txd),
-    .phy2_rgmii_tx_ctl(phy2_tx_ctl),
-    .phy2_reset_n(phy2_reset_n),
-
-    .phy3_rgmii_rx_clk(phy3_rx_clk),
-    .phy3_rgmii_rxd(phy3_rxd_int),
-    .phy3_rgmii_rx_ctl(phy3_rx_ctl_int),
-    .phy3_rgmii_tx_clk(phy3_tx_clk),
-    .phy3_rgmii_txd(phy3_txd),
-    .phy3_rgmii_tx_ctl(phy3_tx_ctl),
-    .phy3_reset_n(phy3_reset_n),
 
     /*
      * Ethernet: SFP+
