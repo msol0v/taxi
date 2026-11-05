@@ -78,6 +78,26 @@ wire mmcm_rst = 1'b0;
 wire mmcm_locked;
 wire mmcm_clkfb;
 
+
+// Внутренние сигналы AXI-Stream для подключения к rx_fifo и tx_fifo для eth_mac
+wire s_clk_int;
+wire s_rst_int;
+taxi_axis_if #(
+    .DATA_W(MAC_DATA_W),
+    .ID_W(8),
+    .USER_EN(1),
+    .USER_W(1)
+) s_axis_int();
+
+wire m_clk_int;
+wire m_rst_int;
+taxi_axis_if #(
+    .DATA_W(MAC_DATA_W),
+    .ID_W(8),
+    .USER_EN(1),
+    .USER_W(1)
+) m_axis_int();
+
 // MMCM instance
 MMCME4_BASE #(
     // 25 MHz input
@@ -268,7 +288,17 @@ core_inst (
     .sfp_i2c_scl_t(sfp_i2c_scl_t),
     .sfp_i2c_sda_i(sfp_i2c_sda_i),
     .sfp_i2c_sda_o(sfp_i2c_sda_o),
-    .sfp_i2c_sda_t(sfp_i2c_sda_t)
+    .sfp_i2c_sda_t(sfp_i2c_sda_t),
+    
+    // mac_fifo_tx
+    .s_clk_fifo_tx(s_clk_int),
+    .s_rst_fifo_tx(s_rst_int),
+    .s_axis_fifo_tx(s_axis_int),
+    
+    // mac_fifo_rx    
+    .m_clk_fifo_rx(m_clk_int),
+    .m_rst_fifo_rx(m_rst_int),
+    .m_axis_fifo_rx(m_axis_int)
 );
 
 endmodule

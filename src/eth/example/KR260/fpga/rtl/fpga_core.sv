@@ -62,7 +62,22 @@ module fpga_core #
     output wire logic        sfp_i2c_scl_t,
     input  wire logic        sfp_i2c_sda_i,
     output wire logic        sfp_i2c_sda_o,
-    output wire logic        sfp_i2c_sda_t
+    output wire logic        sfp_i2c_sda_t,
+    
+     /*
+     * AXI4-Stream input (sink)
+     */
+    input  wire logic                    s_clk_fifo_tx,
+    input  wire logic                    s_rst_fifo_tx,
+    taxi_axis_if.snk                     s_axis_fifo_tx,
+
+    /*
+     * AXI4-Stream output (source)
+     */
+    input  wire logic                    m_clk_fifo_rx,
+    input  wire logic                    m_rst_fifo_rx,
+    taxi_axis_if.src                     m_axis_fifo_rx
+
 );
 
 // SFP+
@@ -653,6 +668,7 @@ end
 
 for (genvar n = 0; n < $size(axis_sfp_tx); n = n + 1) begin : sfp_ch
 
+// FIFO TX -----------------------------------------------------------
     taxi_axis_async_fifo #(
         .DEPTH(16384),
         .RAM_PIPELINE(2),
@@ -663,7 +679,57 @@ for (genvar n = 0; n < $size(axis_sfp_tx); n = n + 1) begin : sfp_ch
         .DROP_BAD_FRAME(1),
         .DROP_WHEN_FULL(1)
     )
-    ch_fifo (
+    tx_ch_fifo (
+        /*
+         * AXI4-Stream input (sink)
+         */
+        .s_clk(s_clk_fifo_tx),
+        .s_rst(s_rst_fifo_tx),
+        .s_axis(s_axis_fifo_tx),
+
+        /*
+         * AXI4-Stream output (source)
+         */
+        .m_clk(sfp_tx_clk[n]),
+        .m_rst(sfp_tx_rst[n]),
+        .m_axis(axis_sfp_tx[n]),
+
+        /*
+         * Pause
+         */
+        .s_pause_req(1'b0),
+        .s_pause_ack(),
+        .m_pause_req(1'b0),
+        .m_pause_ack(),
+
+        /*
+         * Status
+         */
+        .s_status_depth(),
+        .s_status_depth_commit(),
+        .s_status_overflow(),
+        .s_status_bad_frame(),
+        .s_status_good_frame(),
+        .m_status_depth(),
+        .m_status_depth_commit(),
+        .m_status_overflow(),
+        .m_status_bad_frame(),
+        .m_status_good_frame()
+    );
+    
+// FIFO RX----------------------------------
+
+    taxi_axis_async_fifo #(
+        .DEPTH(16384),
+        .RAM_PIPELINE(2),
+        .FRAME_FIFO(1),
+        .USER_BAD_FRAME_VALUE(1'b1),
+        .USER_BAD_FRAME_MASK(1'b1),
+        .DROP_OVERSIZE_FRAME(1),
+        .DROP_BAD_FRAME(1),
+        .DROP_WHEN_FULL(1)
+    )
+    rx_ch_fifo (
         /*
          * AXI4-Stream input (sink)
          */
@@ -674,9 +740,9 @@ for (genvar n = 0; n < $size(axis_sfp_tx); n = n + 1) begin : sfp_ch
         /*
          * AXI4-Stream output (source)
          */
-        .m_clk(sfp_tx_clk[n]),
-        .m_rst(sfp_tx_rst[n]),
-        .m_axis(axis_sfp_tx[n]),
+        .m_clk(m_clk_fifo_rx),
+        .m_rst(m_rst_fifo_rx),
+        .m_axis(m_axis_fifo_rx),
 
         /*
          * Pause
