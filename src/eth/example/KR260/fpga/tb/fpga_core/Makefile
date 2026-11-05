@@ -18,14 +18,14 @@ LIB_DIR = ../../lib
 TAXI_SRC_DIR = $(LIB_DIR)/taxi/src
 
 DUT      = fpga_core
-COCOTB_TEST_MODULES = test_$(DUT)
-COCOTB_TOPLEVEL     = $(DUT)
+COCOTB_TEST_MODULES = test_fpga_core
+COCOTB_TOPLEVEL     = fpga_core_tb
 MODULE   = $(COCOTB_TEST_MODULES)
 TOPLEVEL = $(COCOTB_TOPLEVEL)
+VERILOG_SOURCES += $(TAXI_SRC_DIR)/axis/rtl/taxi_axis_if.sv
 VERILOG_SOURCES += $(RTL_DIR)/$(DUT).sv
+VERILOG_SOURCES += fpga_core_tb.sv
 VERILOG_SOURCES += $(TAXI_SRC_DIR)/eth/rtl/us/taxi_eth_mac_25g_us.f
-VERILOG_SOURCES += $(TAXI_SRC_DIR)/eth/rtl/us/taxi_eth_mac_1g_basex_us.f
-VERILOG_SOURCES += $(TAXI_SRC_DIR)/eth/rtl/taxi_eth_mac_1g_rgmii_fifo.f
 VERILOG_SOURCES += $(TAXI_SRC_DIR)/sync/rtl/taxi_sync_reset.sv
 VERILOG_SOURCES += $(TAXI_SRC_DIR)/sync/rtl/taxi_sync_signal.sv
 
@@ -34,12 +34,13 @@ process_f_file = $(call process_f_files,$(addprefix $(dir $1),$(shell cat $1)))
 process_f_files = $(foreach f,$1,$(if $(filter %.f,$f),$(call process_f_file,$f),$f))
 uniq_base = $(if $1,$(call uniq_base,$(foreach f,$1,$(if $(filter-out $(notdir $(lastword $1)),$(notdir $f)),$f,))) $(lastword $1))
 VERILOG_SOURCES := $(call uniq_base,$(call process_f_files,$(VERILOG_SOURCES)))
+VERILOG_SOURCES := $(filter-out %/taxi_axis_if.sv,$(VERILOG_SOURCES))
+VERILOG_SOURCES := $(TAXI_SRC_DIR)/axis/rtl/taxi_axis_if.sv $(VERILOG_SOURCES)
 
 # module parameters
 export PARAM_SIM := "1'b1"
 export PARAM_VENDOR := "\"XILINX\""
 export PARAM_FAMILY := "\"zynquplus\""
-export PARAM_USE_CLK90 := "1'b1"
 export PARAM_CFG_LOW_LATENCY := "1'b1"
 export PARAM_COMBINED_MAC_PCS := "1'b1"
 export PARAM_MAC_DATA_W := "32"
