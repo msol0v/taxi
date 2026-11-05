@@ -246,6 +246,74 @@ sync_signal_inst (
 assign sfp_i2c_scl = sfp_i2c_scl_t_reg ? 1'bz : sfp_i2c_scl_o_reg;
 assign sfp_i2c_sda = sfp_i2c_sda_t_reg ? 1'bz : sfp_i2c_sda_o_reg;
 
+// Zynq PS + AXI DMA привязываем к bd
+
+wire [0:0] eth_resetn;
+wire       pl_clk0;
+
+// DMA -> Ethernet TX
+wire [31:0] dma_tx_tdata;
+wire [3:0]  dma_tx_tkeep;
+wire        dma_tx_tlast;
+wire        dma_tx_tvalid;
+wire        dma_tx_tready;
+
+// Ethernet RX -> DMA
+wire [31:0] dma_rx_tdata;
+wire [3:0]  dma_rx_tkeep;
+wire        dma_rx_tlast;
+wire        dma_rx_tvalid;
+wire        dma_rx_tready;
+
+// Общий clock/reset для асинхронных FIFO Ethernet
+assign s_clk_int = clk_312mhz_int;
+assign m_clk_int = clk_312mhz_int;
+
+assign s_rst_int = rst_312mhz_int | ~eth_resetn[0];
+assign m_rst_int = rst_312mhz_int | ~eth_resetn[0];
+
+// DMA MM2S -> TX FIFO
+assign s_axis_int.tdata  = dma_tx_tdata;
+assign s_axis_int.tkeep  = dma_tx_tkeep;
+assign s_axis_int.tstrb  = dma_tx_tkeep;
+assign s_axis_int.tlast  = dma_tx_tlast;
+assign s_axis_int.tvalid = dma_tx_tvalid;
+assign s_axis_int.tid    = '0;
+assign s_axis_int.tdest  = '0;
+assign s_axis_int.tuser  = '0;
+
+assign dma_tx_tready = s_axis_int.tready;
+
+// RX FIFO -> DMA S2MM
+assign dma_rx_tdata  = m_axis_int.tdata;
+assign dma_rx_tkeep  = m_axis_int.tkeep;
+assign dma_rx_tlast  = m_axis_int.tlast;
+assign dma_rx_tvalid = m_axis_int.tvalid;
+
+assign m_axis_int.tready = dma_rx_tready;
+
+zynq_ps zynq_ps_inst (
+    .eth_clk(clk_312mhz_int),
+    .eth_resetn(eth_resetn),
+
+    // DMA  -> Ethernet TX
+    .m_axis_eth_tx_tdata(dma_tx_tdata),
+    .m_axis_eth_tx_tkeep(dma_tx_tkeep),
+    .m_axis_eth_tx_tlast(dma_tx_tlast),
+    .m_axis_eth_tx_tvalid(dma_tx_tvalid),
+    .m_axis_eth_tx_tready(dma_tx_tready),
+
+    // Ethernet RX -> DMA 
+    .s_axis_eth_rx_tdata(dma_rx_tdata),
+    .s_axis_eth_rx_tkeep(dma_rx_tkeep),
+    .s_axis_eth_rx_tlast(dma_rx_tlast),
+    .s_axis_eth_rx_tvalid(dma_rx_tvalid),
+    .s_axis_eth_rx_tready(dma_rx_tready),
+
+    .pl_clk0(pl_clk0)
+);
+
+
 fpga_core #(
     .SIM(SIM),
     .VENDOR(VENDOR),
